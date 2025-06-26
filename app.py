@@ -103,23 +103,40 @@ st.subheader("🔮 Vorhergesagte Zielgrößen")
 for i, ziel in enumerate(zielspalten):
     st.metric(label=ziel, value=round(prediction[i], 2))
 
-# --- Partial Dependence Plot ---
+# --- Partial Dependence Plot mit Mehrfachauswahl ---
 st.subheader("📊 Einflussanalyse (Partial Dependence)")
+
 feature_options = X_clean.columns.tolist()
-selected_feature = st.selectbox("📌 Feature auswählen", feature_options)
+
+selected_features = st.multiselect(
+    "📌 Einflussgrößen auswählen (max. 2 gleichzeitig)",
+    feature_options,
+    default=[feature_options[0]]
+)
+
+if len(selected_features) > 2:
+    st.warning("Bitte wähle maximal 2 Einflussgrößen aus.")
+    selected_features = selected_features[:2]
+
 selected_targets = st.multiselect("📈 Zielgrößen für Analyse", zielspalten, default=zielspalten[:1])
 
-if selected_feature and selected_targets:
+if selected_features and selected_targets:
     for ziel in selected_targets:
         try:
             target_index = zielspalten.index(ziel)
-            fig, ax = plt.subplots()
-            PartialDependenceDisplay.from_estimator(modell, X_clean, [selected_feature], target=target_index, ax=ax)
+            fig, ax = plt.subplots(figsize=(6, 4) if len(selected_features) == 1 else (6, 6))
+            PartialDependenceDisplay.from_estimator(
+                modell,
+                X_clean,
+                selected_features,
+                target=target_index,
+                ax=ax
+            )
             st.pyplot(fig)
         except Exception as e:
             st.warning(f"⚠️ PDP für {ziel} konnte nicht erstellt werden: {e}")
 
-# --- Lokale Regeln (Beispielhafte statische Antworten) ---
+# --- Lokale Regeln (statisch) ---
 st.subheader("💬 Einfache Regelabfragen")
 frage = st.text_input("🧠 Frage zu Komponenten (z. B. 'Wie wirkt sich Sylysia256 auf Glanz60 aus?')")
 if frage:
